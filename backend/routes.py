@@ -51,3 +51,74 @@ def parse_json(data):
 ######################################################################
 # INSERT CODE HERE
 ######################################################################
+@app.route("/health", methods=["GET"])
+def health():
+    return {"status": "OK"}
+
+@app.route("/count")
+def count():
+    """return length of data"""
+    count = db.songs.count_documents({})
+
+    return {"count": count}, 200
+
+@app.route("/song", methods=["GET"])
+def songs():
+    """return all songs in the database"""
+    result = db.songs.find({})
+    return {"songs": parse_json(result)}, 200
+
+@app.route("/song/<int:id>", methods=["GET"])
+def get_song_by_id(id):
+    result = db.songs.find_one({"id": id})
+    if not result:
+        return {"message": f"song with id {id} not found"}, 404
+    return parse_json(result), 200
+
+@app.route("/song", methods=["POST"])
+def create_song():
+    """create a new song"""
+    new_song = request.json
+    if not new_song:
+        return {"message": "invalid input"}, 422
+
+    if db.songs.find_one({"id": new_song["id"]}):
+        return {"Message": f"song with id {new_song['id']} already present"}, 302
+
+    insert_result = db.songs.insert_one(new_song)
+    return {"inserted id": parse_json(insert_result.inserted_id)}, 201
+
+@app.route("/song/<int:id>", methods=["PUT"])
+def update_song(id):
+    """update song with given id"""
+    data = request.json
+    if not data:
+        return {"message": "invalid input"}, 422
+    song = db.songs.find_one({"id": id})
+    if not song:
+        return {"message": "song not found"}, 404
+    update_result = db.songs.update_one({"id": id}, {"$set": data})
+    if update_result.modified_count > 0:
+        return parse_json(db.songs.find_one({"id":id})), 201
+    else:    
+        return {"message":"song found, but nothing updated"}, 200
+    
+
+@app.route("/song/<int:id>", methods=["DELETE"])
+def delete_song(id):
+    """delete song with given id"""
+    result = db.songs.delete_one({"id":id})
+    if result.deleted_count == 0:
+        return {"message": "song not found"}, 404
+    else:
+        return "", 204
+
+
+
+
+    
+
+    
+
+
+
